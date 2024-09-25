@@ -9,14 +9,8 @@ import AppNavigator from './src/screens';
 import {TContext, TLocationInfo} from '@Types/index';
 import {EvaIconsPack} from '@ui-kitten/eva-icons';
 import React from 'react';
-
-//todo Dear friend, this turnip was complete garbage 
-//* - it became garbage into which I added working code. 
-//! I DIDNT GET PAID for this at all, I'm still OPEN TO WORK. 
-//todo Total time spent - 16 hours.
-//* I hope you will be understanding.
-//? Good luck
-//! tg: alxndr_schrbkv
+import {Provider} from 'react-redux';
+import store from 'src/redux/store';
 
 type TDataContext = React.Context<TContext>;
 
@@ -30,7 +24,7 @@ export const DataContext: TDataContext = React.createContext({
 export default function App() {
   const [info, setInfo] = useState<TLocationInfo>(undefined);
   const [image, setImage] = useState<number | undefined>(undefined);
-  
+
   const updateInfo = (newInfo: TLocationInfo) => {
     setInfo(newInfo);
   };
@@ -56,18 +50,20 @@ export default function App() {
 
   return (
     <View style={styles.flex} onLayout={onLayoutRootView}>
-      <IconRegistry icons={EvaIconsPack} />
-      <ApplicationProvider {...eva} theme={eva.light}>
-        <DataContext.Provider
-          value={{
-            info,
-            image,
-            changeInfo: updateInfo,
-            changeImage: updateImage,
-          }}>
-          <AppNavigator />
-        </DataContext.Provider>
-      </ApplicationProvider>
+      <Provider store={store}>
+        <IconRegistry icons={EvaIconsPack} />
+        <ApplicationProvider {...eva} theme={eva.light}>
+          <DataContext.Provider
+            value={{
+              info,
+              image,
+              changeInfo: updateInfo,
+              changeImage: updateImage,
+            }}>
+            <AppNavigator />
+          </DataContext.Provider>
+        </ApplicationProvider>
+      </Provider>
     </View>
   );
 }

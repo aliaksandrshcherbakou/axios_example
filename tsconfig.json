@@ -29,7 +29,8 @@
       ],
       "@routes": [
         "src/routes"
-      ]
+      ],
+      "@env": [".env"]
     }
   },
   "extends": "expo/tsconfig.base",

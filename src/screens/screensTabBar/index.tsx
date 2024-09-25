@@ -7,6 +7,7 @@ import {StyleSheet} from 'react-native';
 import Chart from './Chart';
 import Data from './Data';
 import Market from './Market';
+import Axios from './Axios';
 
 const Tab = createBottomTabNavigator<TabBarStackParamList>();
 
@@ -22,6 +23,7 @@ const BottomMenu: FC = () => {
           tabBarIcon: props => <Square {...props} />,
           tabBarHideOnKeyboard: true,
         }}>
+        <Tab.Screen name={ROUTES.AXIOS} component={Axios} />
         <Tab.Screen name={ROUTES.MARKET} component={Market} />
         <Tab.Screen name={ROUTES.DATA} component={Data} />
         <Tab.Screen name={ROUTES.CHART} component={Chart} />
