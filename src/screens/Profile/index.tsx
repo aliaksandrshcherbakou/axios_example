@@ -279,7 +279,7 @@ const Profile = () => {
           {/* App Info */}
           <View style={styles.appInfo}>
             <Typography element="caption" style={styles.appInfoText}>
-              Version 1.0.0
+              Free Hand v1.0.0
             </Typography>
             <Typography element="caption" style={styles.appInfoText}>
               Built with 💜 for your journey
