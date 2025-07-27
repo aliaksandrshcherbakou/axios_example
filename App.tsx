@@ -5,11 +5,31 @@ import * as SplashScreen from 'expo-splash-screen';
 import {useCallback} from 'react';
 import {Platform, StyleSheet, View} from 'react-native';
 import WebWrapper from './src/components/WebWrapper';
+import {AuthProvider, useAuth} from './src/contexts/AuthContext';
 import AppNavigator from './src/screens';
+import AuthNavigator from './src/screens/auth/AuthNavigator';
 
 import {EvaIconsPack} from '@ui-kitten/eva-icons';
 import {Provider} from 'react-redux';
 import store from 'src/redux/store';
+
+// App Content Component that uses auth context
+const AppContent = () => {
+  const {user, loading} = useAuth();
+
+  if (loading) {
+    // You can add a loading screen component here
+    return <View style={styles.flex} />;
+  }
+
+  // Show auth screens if user is not authenticated
+  if (!user) {
+    return <AuthNavigator key="auth-navigator" />;
+  }
+
+  // Show main app if user is authenticated
+  return <AppNavigator key="main-navigator" />;
+};
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -28,12 +48,14 @@ export default function App() {
     return null;
   }
 
-  const AppContent = () => (
+  const MainApp = () => (
     <Provider store={store}>
-      <IconRegistry icons={EvaIconsPack} />
-      <ApplicationProvider {...eva} theme={eva.light}>
-        <AppNavigator />
-      </ApplicationProvider>
+      <AuthProvider>
+        <IconRegistry icons={EvaIconsPack} />
+        <ApplicationProvider {...eva} theme={eva.light}>
+          <AppContent />
+        </ApplicationProvider>
+      </AuthProvider>
     </Provider>
   );
 
@@ -41,10 +63,10 @@ export default function App() {
     <View style={styles.flex} onLayout={onLayoutRootView}>
       {Platform.OS === 'web' ? (
         <WebWrapper>
-          <AppContent />
+          <MainApp />
         </WebWrapper>
       ) : (
-        <AppContent />
+        <MainApp />
       )}
     </View>
   );

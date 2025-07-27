@@ -21,7 +21,7 @@ export type ImageData = {
 export type HabitRecord = {
   date: string; // YYYY-MM-DD format
   fapped: boolean;
-  timestamp: number;
+  timestamp: string; // ISO string format
 };
 
 export type HabitStats = {

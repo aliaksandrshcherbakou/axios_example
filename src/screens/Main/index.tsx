@@ -1,107 +1,101 @@
 import GradientBackground from '@Components/GradientBackground';
 import Typography from '@Components/Typography';
 import {COLORS, SIZES} from '@Constants/style.constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useFocusEffect} from '@react-navigation/native';
 import {memo, useCallback, useEffect, useState} from 'react';
-import {Alert, SafeAreaView, StyleSheet, TouchableOpacity, View} from 'react-native';
+import {SafeAreaView, StyleSheet, TouchableOpacity, View} from 'react-native';
+import {useAuth} from '../../contexts/AuthContext';
+import {HabitService} from '../../services/habitService';
+import {HabitRecord} from '../../types';
+import {showSimpleAlert} from '../../utils/alert';
 
 const questions = [
-  'Did you watch any adult content today?',
-  'Have you fapped today?',
-  'Did you give in to urges today?',
-  'Have you broken your streak today?',
-  'Did you relapse today?',
-  'Have you watched any inappropriate content today?',
-  'Did you lose control today?',
-  'Have you fallen back into old habits today?',
+  'Did you fap today?',
+  'Did you watch porn today?',
+  'Did you give in to temptation today?',
+  'Did you break your streak today?',
+  'Did you fail your goal today?',
 ];
 
 const Main = () => {
-  const [currentQuestion, setCurrentQuestion] = useState('');
-  const [todayAnswered, setTodayAnswered] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [todayAnswered, setTodayAnswered] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState('');
+  const {user} = useAuth();
 
-  const checkTodayStatus = useCallback(async () => {
+  const loadData = useCallback(async () => {
+    if (!user) return;
+
     try {
       const today = new Date().toISOString().split('T')[0];
-      const record = await AsyncStorage.getItem(`habit_${today}`);
-      setTodayAnswered(!!record);
-    } catch (error) {
-      console.error('Error checking today status:', error);
-    }
-  }, []);
 
-  const loadCurrentStreak = useCallback(async () => {
-    try {
-      const streak = await AsyncStorage.getItem('current_streak');
-      setCurrentStreak(parseInt(streak || '0', 10));
+      // Check if today is already answered
+      const todayRecord = await HabitService.getHabitRecord(user.uid, today);
+      setTodayAnswered(!!todayRecord);
+
+      // Get user stats
+      const stats = await HabitService.getUserStats(user.uid);
+      setCurrentStreak(stats.currentStreak);
+
+      // Set random question
+      const randomIndex = Math.floor(Math.random() * questions.length);
+      setCurrentQuestion(questions[randomIndex]);
     } catch (error) {
-      console.error('Error loading streak:', error);
+      console.error('Error loading data:', error);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    checkTodayStatus();
-    loadCurrentStreak();
-    setRandomQuestion();
-  }, [checkTodayStatus, loadCurrentStreak]);
+    loadData();
+  }, [loadData]);
 
-  // Refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      checkTodayStatus();
-      loadCurrentStreak();
-    }, [checkTodayStatus, loadCurrentStreak]),
+      loadData();
+    }, [loadData]),
   );
 
-  const setRandomQuestion = () => {
-    const randomIndex = Math.floor(Math.random() * questions.length);
-    setCurrentQuestion(questions[randomIndex]);
-  };
-
   const handleAnswer = async (fapped: boolean) => {
+    if (!user) return;
+
     try {
       const today = new Date().toISOString().split('T')[0];
-      const timestamp = Date.now();
 
-      const record = {
+      // Create habit record
+      const record: HabitRecord = {
         date: today,
-        fapped,
-        timestamp,
+        fapped: fapped,
+        timestamp: new Date().toISOString(),
       };
 
-      // Save today's record
-      await AsyncStorage.setItem(`habit_${today}`, JSON.stringify(record));
+      // Save the record
+      await HabitService.saveHabitRecord(user.uid, record);
 
-      // Update streak
-      let newStreak = currentStreak;
-      if (fapped) {
-        newStreak = 0; // Reset streak
-        Alert.alert('Streak Reset', "Don't worry, tomorrow is a new day. You've got this! 💪", [{text: 'OK'}]);
-      } else {
-        newStreak = currentStreak + 1;
+      // Get all records to calculate new streak
+      const allRecords = await HabitService.getAllHabitRecords(user.uid);
+      const stats = HabitService.calculateStats(allRecords);
 
-        // Update longest streak if needed
-        const currentLongest = parseInt((await AsyncStorage.getItem('longest_streak')) || '0', 10);
-        if (newStreak > currentLongest) {
-          await AsyncStorage.setItem('longest_streak', newStreak.toString());
-        }
+      // Update user stats
+      await HabitService.saveUserStats(user.uid, {
+        currentStreak: stats.currentStreak,
+        longestStreak: stats.longestStreak,
+      });
 
-        if (newStreak > 0) {
-          Alert.alert('Great Job!', `You're on a ${newStreak} day streak! Keep it up! 🔥`, [{text: 'Awesome!'}]);
-        }
-      }
-
-      await AsyncStorage.setItem('current_streak', newStreak.toString());
-      setCurrentStreak(newStreak);
+      // Update local state
+      setCurrentStreak(stats.currentStreak);
       setTodayAnswered(true);
 
-      // Set new random question for next time
-      setRandomQuestion();
+      // Show appropriate message
+      if (fapped) {
+        showSimpleAlert('Streak Reset', "Don't worry, tomorrow is a new day. You've got this! 💪", 'OK');
+      } else {
+        if (stats.currentStreak > 0) {
+          showSimpleAlert('Great Job!', `You're on a ${stats.currentStreak} day streak! Keep it up! 🔥`, 'Awesome!');
+        }
+      }
     } catch (error) {
-      console.error('Error saving record:', error);
-      Alert.alert('Error', 'Failed to save your response. Please try again.');
+      console.error('Error saving answer:', error);
+      showSimpleAlert('Error', 'Failed to save your answer. Please try again.');
     }
   };
 
@@ -135,13 +129,13 @@ const Main = () => {
         ) : (
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={[styles.button, styles.yesButton]} onPress={() => handleAnswer(true)}>
-              <Typography element="button" fontWeight="bold" color={COLORS.White}>
+              <Typography element="button" fontWeight="bold" style={styles.yesButtonText}>
                 YES
               </Typography>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.button, styles.noButton]} onPress={() => handleAnswer(false)}>
-              <Typography element="button" fontWeight="bold" color={COLORS.MineShaft}>
+              <Typography element="button" fontWeight="bold" style={styles.noButtonText}>
                 NO
               </Typography>
             </TouchableOpacity>
@@ -214,7 +208,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#292929',
     borderColor: '#292929',
   },
-
   completedContainer: {
     alignItems: 'center',
     paddingVertical: SIZES.spacing,
@@ -223,5 +216,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  yesButtonText: {
+    color: COLORS.White,
+  },
+  noButtonText: {
+    color: COLORS.MineShaft,
   },
 });

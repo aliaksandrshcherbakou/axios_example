@@ -1,4 +1,5 @@
 export enum ROUTES {
+  AUTH = 'AUTH',
   DASHBOARD = 'DASHBOARD',
   MAIN = 'MAIN',
   STATISTICS = 'STATISTICS',
@@ -6,6 +7,7 @@ export enum ROUTES {
 }
 
 export type RootStackParamList = {
+  [ROUTES.AUTH]: undefined;
   [ROUTES.DASHBOARD]: undefined;
 } & TabBarStackParamList;
 

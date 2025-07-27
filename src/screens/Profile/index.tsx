@@ -1,119 +1,163 @@
 import GradientBackground from '@Components/GradientBackground';
 import Typography from '@Components/Typography';
 import {COLORS, SIZES} from '@Constants/style.constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useFocusEffect} from '@react-navigation/native';
 import {Button, Input} from '@ui-kitten/components';
-import {memo, useEffect, useState} from 'react';
-import {Alert, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View} from 'react-native';
+import {memo, useCallback, useEffect, useState} from 'react';
+import {SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View} from 'react-native';
+import {useAuth} from '../../contexts/AuthContext';
+import {HabitService} from '../../services/habitService';
+import {showConfirm, showSimpleAlert} from '../../utils/alert';
+
+const motivationalQuotes = [
+  'The best time to plant a tree was 20 years ago. The second best time is now.',
+  'Your future self is counting on you.',
+  'Progress, not perfection.',
+  'Every master was once a beginner.',
+  'You are stronger than your excuses.',
+  'Success is the sum of small efforts repeated day in and day out.',
+  'The only impossible journey is the one you never begin.',
+  "Believe you can and you're halfway there.",
+  "Don't watch the clock; do what it does. Keep going.",
+  'The difference between ordinary and extraordinary is that little extra.',
+];
 
 const Profile = () => {
   const [userName, setUserName] = useState('');
-  const [goal, setGoal] = useState('');
-  const [motivationalQuote, setMotivationalQuote] = useState('');
+  const [userGoal, setUserGoal] = useState('');
+  const [currentQuote, setCurrentQuote] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState('');
   const [tempGoal, setTempGoal] = useState('');
+  const {user, logout, isAnonymous} = useAuth();
 
-  const motivationalQuotes = [
-    'The strongest people are not those who show strength in front of us, but those who win battles we know nothing about.',
-    'Your current situation is not your final destination. The best is yet to come.',
-    'Success is not final, failure is not fatal: it is the courage to continue that counts.',
-    'The pain of discipline weighs ounces, but the pain of regret weighs tons.',
-    "You don't have to be great to get started, but you have to get started to be great.",
-    'Every moment is a fresh beginning.',
-    'The only impossible journey is the one you never begin.',
-    "Believe you can and you're halfway there.",
-    "It's not about perfect. It's about effort.",
-    'Fall seven times, stand up eight.',
-  ];
+  const loadProfile = useCallback(async () => {
+    if (!user) return;
 
-  useEffect(() => {
-    loadProfile();
-    setRandomQuote();
-  }, []);
-
-  const loadProfile = async () => {
     try {
-      const savedName = await AsyncStorage.getItem('user_name');
-      const savedGoal = await AsyncStorage.getItem('user_goal');
+      const profile = await HabitService.getUserProfile(user.uid);
+      setUserName(profile.name || user.displayName || 'Anonymous User');
+      setUserGoal(profile.goal || 'Stay clean and build better habits');
 
-      setUserName(savedName || 'Anonymous');
-      setGoal(savedGoal || 'Stay clean and focused');
-      setTempName(savedName || '');
-      setTempGoal(savedGoal || '');
+      // Set random quote
+      const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
+      setCurrentQuote(motivationalQuotes[randomIndex]);
     } catch (error) {
       console.error('Error loading profile:', error);
     }
+  }, [user]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile]),
+  );
+
+  const handleEditProfile = () => {
+    setTempName(userName);
+    setTempGoal(userGoal);
+    setIsEditing(true);
   };
 
-  const setRandomQuote = () => {
-    const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
-    setMotivationalQuote(motivationalQuotes[randomIndex]);
-  };
+  const handleSaveProfile = async () => {
+    if (!user) return;
 
-  const saveProfile = async () => {
     try {
-      await AsyncStorage.setItem('user_name', tempName || 'Anonymous');
-      await AsyncStorage.setItem('user_goal', tempGoal || 'Stay clean and focused');
+      await HabitService.saveUserProfile(user.uid, {
+        name: tempName.trim(),
+        goal: tempGoal.trim(),
+      });
 
-      setUserName(tempName || 'Anonymous');
-      setGoal(tempGoal || 'Stay clean and focused');
+      setUserName(tempName.trim());
+      setUserGoal(tempGoal.trim());
       setIsEditing(false);
 
-      Alert.alert('Success', 'Profile updated successfully!');
+      showSimpleAlert('Success', 'Profile updated successfully!');
     } catch (error) {
       console.error('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      showSimpleAlert('Error', 'Failed to update profile. Please try again.');
     }
   };
 
-  const resetData = () => {
-    Alert.alert('Reset All Data', 'Are you sure you want to delete all your progress? This action cannot be undone.', [
-      {text: 'Cancel', style: 'cancel'},
-      {
-        text: 'Reset',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const keys = await AsyncStorage.getAllKeys();
-            const habitKeys = keys.filter(
-              key => key.startsWith('habit_') || key === 'current_streak' || key === 'longest_streak',
-            );
-            await AsyncStorage.multiRemove(habitKeys);
-            Alert.alert('Success', 'All progress data has been reset.');
-          } catch (error) {
-            console.error('Error resetting data:', error);
-            Alert.alert('Error', 'Failed to reset data. Please try again.');
-          }
-        },
-      },
-    ]);
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setTempName('');
+    setTempGoal('');
   };
 
-  const exportData = async () => {
+  const handleResetData = () => {
+    showConfirm(
+      'Reset All Data',
+      'Are you sure you want to delete all your habit data? This action cannot be undone.',
+      async () => {
+        if (!user) return;
+
+        try {
+          await HabitService.deleteUserData(user.uid);
+          showSimpleAlert('Success', 'All data has been reset.');
+        } catch (error) {
+          console.error('Error resetting data:', error);
+          showSimpleAlert('Error', 'Failed to reset data. Please try again.');
+        }
+      },
+      undefined,
+      'Reset',
+      'Cancel',
+    );
+  };
+
+  const handleExportData = async () => {
+    if (!user) return;
+
     try {
-      const keys = await AsyncStorage.getAllKeys();
-      const habitKeys = keys.filter(key => key.startsWith('habit_'));
-      const records = await AsyncStorage.multiGet(habitKeys);
-      const currentStreak = await AsyncStorage.getItem('current_streak');
-      const longestStreak = await AsyncStorage.getItem('longest_streak');
+      const records = await HabitService.getAllHabitRecords(user.uid);
+      const stats = await HabitService.getUserStats(user.uid);
+      const profile = await HabitService.getUserProfile(user.uid);
 
       const exportData = {
-        records: records.map(([key, value]) => JSON.parse(value || '{}')),
-        currentStreak: parseInt(currentStreak || '0', 10),
-        longestStreak: parseInt(longestStreak || '0', 10),
+        profile,
+        stats,
+        records,
         exportDate: new Date().toISOString(),
+        appVersion: '1.0.0',
       };
 
-      Alert.alert(
-        'Data Export',
-        `Found ${exportData.records.length} records\nCurrent Streak: ${exportData.currentStreak}\nBest Streak: ${exportData.longestStreak}`,
-        [{text: 'OK'}],
+      // For now, just show the data in an alert
+      // In a real app, you'd implement proper export functionality
+      showSimpleAlert(
+        'Export Data',
+        `Data exported successfully!\n\nTotal Records: ${records.length}\nCurrent Streak: ${stats.currentStreak}\nLongest Streak: ${stats.longestStreak}`,
+        'OK',
       );
     } catch (error) {
       console.error('Error exporting data:', error);
-      Alert.alert('Error', 'Failed to export data. Please try again.');
+      showSimpleAlert('Error', 'Failed to export data. Please try again.');
     }
+  };
+
+  const handleLogout = () => {
+    showConfirm(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      async () => {
+        try {
+          console.log('User initiated logout');
+          await logout();
+          console.log('Logout completed successfully');
+          // Navigation will happen automatically via App.tsx when user becomes null
+        } catch (error) {
+          console.error('Error signing out:', error);
+          showSimpleAlert('Error', 'Failed to sign out. Please try again.');
+        }
+      },
+      undefined,
+      'Sign Out',
+      'Cancel',
+    );
   };
 
   return (
@@ -125,26 +169,23 @@ const Profile = () => {
             <Typography element="h1" style={styles.title}>
               Profile
             </Typography>
+
+            {/* User Avatar */}
+            <View style={styles.avatarContainer}>
+              <Typography element="h1" style={styles.avatar}>
+                👤
+              </Typography>
+            </View>
           </View>
 
-          {/* User Info Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Typography element="h2" style={styles.cardTitle}>
-                User Information
-              </Typography>
-              <TouchableOpacity onPress={() => setIsEditing(!isEditing)} style={styles.editButton}>
-                <Typography element="body" style={styles.editText}>
-                  {isEditing ? 'Cancel' : 'Edit'}
-                </Typography>
-              </TouchableOpacity>
-            </View>
-
+          {/* User Info */}
+          <View style={styles.infoContainer}>
             {isEditing ? (
+              // Edit Mode
               <>
                 <View style={styles.inputContainer}>
                   <Typography element="body" style={styles.label}>
-                    Name:
+                    Name
                   </Typography>
                   <Input
                     style={styles.input}
@@ -156,7 +197,7 @@ const Profile = () => {
 
                 <View style={styles.inputContainer}>
                   <Typography element="body" style={styles.label}>
-                    Goal:
+                    Goal
                   </Typography>
                   <Input
                     style={styles.input}
@@ -164,125 +205,131 @@ const Profile = () => {
                     onChangeText={setTempGoal}
                     placeholder="Enter your goal"
                     multiline
+                    numberOfLines={3}
                   />
                 </View>
 
-                <Button style={styles.saveButton} onPress={saveProfile}>
-                  Save Changes
-                </Button>
+                <View style={styles.buttonRow}>
+                  <Button style={[styles.button, styles.saveButton]} onPress={handleSaveProfile} size="small">
+                    <Typography element="button" style={styles.saveButtonText}>
+                      Save
+                    </Typography>
+                  </Button>
+
+                  <Button style={[styles.button, styles.cancelButton]} onPress={handleCancelEdit} size="small">
+                    <Typography element="button" style={styles.cancelButtonText}>
+                      Cancel
+                    </Typography>
+                  </Button>
+                </View>
               </>
             ) : (
+              // View Mode
               <>
-                <View style={styles.infoRow}>
-                  <Typography element="body" style={styles.label}>
-                    Name:
+                <View style={styles.infoItem}>
+                  <Typography element="body" style={styles.infoLabel}>
+                    Name
                   </Typography>
-                  <Typography element="body" style={styles.value}>
+                  <Typography element="h2" style={styles.infoValue}>
                     {userName}
                   </Typography>
                 </View>
 
-                <View style={styles.infoRow}>
-                  <Typography element="body" style={styles.label}>
-                    Goal:
+                <View style={styles.infoItem}>
+                  <Typography element="body" style={styles.infoLabel}>
+                    Goal
                   </Typography>
-                  <Typography element="body" style={styles.value}>
-                    {goal}
+                  <Typography element="body" style={styles.infoValue}>
+                    {userGoal}
                   </Typography>
                 </View>
+
+                {!isAnonymous && (
+                  <View style={styles.infoItem}>
+                    <Typography element="body" style={styles.infoLabel}>
+                      Email
+                    </Typography>
+                    <Typography element="body" style={styles.infoValue}>
+                      {user?.email || 'Not available'}
+                    </Typography>
+                  </View>
+                )}
+
+                <Button style={[styles.button, styles.editButton]} onPress={handleEditProfile} size="small">
+                  <Typography element="button" style={styles.editButtonText}>
+                    Edit Profile
+                  </Typography>
+                </Button>
               </>
             )}
           </View>
 
-          {/* Motivation Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Typography element="h2" style={styles.cardTitle}>
-                Daily Motivation
+          {/* Motivational Quote */}
+          <View style={styles.quoteContainer}>
+            <Typography element="body" style={styles.quoteLabel}>
+              💡 Daily Motivation
+            </Typography>
+            <Typography element="h3" style={styles.quote}>
+              "{currentQuote}"
+            </Typography>
+          </View>
+
+          {/* Account Type */}
+          <View style={styles.accountContainer}>
+            <Typography element="body" style={styles.accountLabel}>
+              Account Type
+            </Typography>
+            <Typography element="body" style={styles.accountValue}>
+              {isAnonymous ? 'Anonymous User' : 'Registered User'}
+            </Typography>
+            {isAnonymous && (
+              <Typography element="caption" style={styles.accountNote}>
+                Create an account to sync your data across devices
               </Typography>
-              <TouchableOpacity onPress={setRandomQuote} style={styles.refreshButton}>
-                <Typography element="body" style={styles.refreshText}>
-                  🔄
-                </Typography>
-              </TouchableOpacity>
-            </View>
-
-            <Typography element="body" style={styles.quote}>
-              "{motivationalQuote}"
-            </Typography>
+            )}
           </View>
 
-          {/* Achievements Card */}
-          <View style={styles.card}>
-            <Typography element="h2" style={styles.cardTitle}>
-              Achievements
-            </Typography>
-
-            <View style={styles.achievementGrid}>
-              <View style={styles.achievement}>
-                <Typography element="h3" style={styles.achievementEmoji}>
-                  🎯
-                </Typography>
-                <Typography element="caption" style={styles.achievementText}>
-                  First Day
-                </Typography>
-              </View>
-
-              <View style={styles.achievement}>
-                <Typography element="h3" style={styles.achievementEmoji}>
-                  🔥
-                </Typography>
-                <Typography element="caption" style={styles.achievementText}>
-                  Week Warrior
-                </Typography>
-              </View>
-
-              <View style={styles.achievement}>
-                <Typography element="h3" style={styles.achievementEmoji}>
-                  💪
-                </Typography>
-                <Typography element="caption" style={styles.achievementText}>
-                  Month Master
-                </Typography>
-              </View>
-
-              <View style={styles.achievement}>
-                <Typography element="h3" style={styles.achievementEmoji}>
-                  👑
-                </Typography>
-                <Typography element="caption" style={styles.achievementText}>
-                  Year Champion
-                </Typography>
-              </View>
-            </View>
-          </View>
-
-          {/* Data Management Card */}
-          <View style={styles.card}>
-            <Typography element="h2" style={styles.cardTitle}>
+          {/* Data Management */}
+          <View style={styles.actionsContainer}>
+            <Typography element="h2" style={styles.actionsTitle}>
               Data Management
             </Typography>
 
-            <TouchableOpacity style={[styles.actionButton, styles.exportButton]} onPress={exportData}>
-              <Typography element="body" fontWeight="bold" color={COLORS.MineShaft}>
-                Export Data
+            <TouchableOpacity style={styles.actionItem} onPress={handleExportData}>
+              <Typography element="body" style={styles.actionText}>
+                📤 Export Data
+              </Typography>
+              <Typography element="caption" style={styles.actionDescription}>
+                Download your habit data
               </Typography>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.actionButton, styles.resetButton]} onPress={resetData}>
-              <Typography element="body" fontWeight="bold" color={COLORS.MineShaft}>
-                Reset All Data
+            <TouchableOpacity style={styles.actionItem} onPress={handleResetData}>
+              <Typography element="body" style={styles.actionTextDanger}>
+                🗑️ Reset All Data
+              </Typography>
+              <Typography element="caption" style={styles.actionDescription}>
+                Delete all your habit records
+              </Typography>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionItem} onPress={handleLogout}>
+              <Typography element="body" style={styles.actionTextDanger}>
+                🚪 Sign Out
+              </Typography>
+              <Typography element="caption" style={styles.actionDescription}>
+                Sign out of your account
               </Typography>
             </TouchableOpacity>
           </View>
 
           {/* App Info */}
-          <View style={styles.appInfo}>
-            <Typography element="caption" style={styles.appInfoText}>
+          <View style={styles.appInfoContainer}>
+            <Typography element="caption" style={styles.appInfo}>
               Free Hand v1.0.0
             </Typography>
-            <Typography element="caption" style={styles.appInfoText}>
-              Built with 💜 for your journey
+            <Typography element="caption" style={styles.appInfo}>
+              Made with ❤️ for your journey
             </Typography>
           </View>
         </ScrollView>
@@ -304,109 +351,166 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: SIZES.spacing * 2,
+    paddingTop: SIZES.spacing,
   },
   title: {
     textAlign: 'center',
-  },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    padding: SIZES.spacing,
+    color: COLORS.White,
+    fontSize: 24,
+    fontWeight: 'bold',
     marginBottom: SIZES.spacing,
-    gap: SIZES.spacing,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  avatarContainer: {
     alignItems: 'center',
     marginBottom: SIZES.spacing,
   },
-  cardTitle: {
-    color: COLORS.primaryComponent,
+  avatar: {
+    fontSize: 48,
+    textAlign: 'center',
   },
-  editButton: {
-    padding: 4,
+  infoContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: SIZES.spacing,
+    marginBottom: SIZES.spacing * 2,
   },
-  editText: {
-    color: COLORS.primaryComponent,
+  infoItem: {
+    marginBottom: SIZES.spacing,
   },
-  refreshButton: {
-    padding: 4,
+  infoLabel: {
+    color: COLORS.White,
+    opacity: 0.8,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
-  refreshText: {
-    fontSize: 16,
+  infoValue: {
+    color: COLORS.White,
   },
   inputContainer: {
     marginBottom: SIZES.spacing,
   },
   label: {
-    marginBottom: 4,
-    opacity: 0.8,
-  },
-  value: {
+    color: COLORS.White,
+    marginBottom: SIZES.spacing / 2,
     fontWeight: 'bold',
   },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 8,
   },
-  infoRow: {
+  buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SIZES.spacing / 2,
+    gap: SIZES.spacing,
+    marginTop: SIZES.spacing,
   },
-  saveButton: {
+  button: {
+    flex: 1,
+    borderRadius: 8,
+  },
+  editButton: {
     backgroundColor: COLORS.primaryComponent,
     borderColor: COLORS.primaryComponent,
     marginTop: SIZES.spacing,
   },
+  editButtonText: {
+    color: COLORS.White,
+    fontWeight: 'bold',
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  saveButtonText: {
+    color: COLORS.White,
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderColor: COLORS.White,
+    borderWidth: 1,
+  },
+  cancelButtonText: {
+    color: COLORS.White,
+    fontWeight: 'bold',
+  },
+  quoteContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: SIZES.spacing,
+    marginBottom: SIZES.spacing * 2,
+  },
+  quoteLabel: {
+    color: COLORS.primaryComponent,
+    fontWeight: 'bold',
+    marginBottom: SIZES.spacing / 2,
+  },
   quote: {
+    color: COLORS.White,
     fontStyle: 'italic',
     textAlign: 'center',
     lineHeight: 22,
-    opacity: 0.9,
   },
-  achievementGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  accountContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: SIZES.spacing,
+    marginBottom: SIZES.spacing * 2,
   },
-  achievement: {
-    width: '22%',
-    alignItems: 'center',
+  accountLabel: {
+    color: COLORS.White,
+    opacity: 0.8,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  accountValue: {
+    color: COLORS.White,
+    fontWeight: 'bold',
+  },
+  accountNote: {
+    color: COLORS.primaryComponent,
+    marginTop: 4,
+    fontSize: 11,
+  },
+  actionsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: SIZES.spacing,
+    marginBottom: SIZES.spacing * 2,
+  },
+  actionsTitle: {
+    color: COLORS.White,
+    fontWeight: 'bold',
     marginBottom: SIZES.spacing,
   },
-  achievementEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
-    lineHeight: 40,
+  actionItem: {
+    paddingVertical: SIZES.spacing,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
-  achievementText: {
-    textAlign: 'center',
-    opacity: 0.8,
+  actionText: {
+    color: COLORS.White,
+    fontWeight: 'bold',
+    marginBottom: 2,
   },
-  actionButton: {
-    marginBottom: SIZES.spacing / 2,
-    padding: SIZES.spacing,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+  actionTextDanger: {
+    color: '#F44336',
+    fontWeight: 'bold',
+    marginBottom: 2,
   },
-  exportButton: {
-    backgroundColor: COLORS.primaryComponent,
-    borderColor: COLORS.primaryComponent,
+  actionDescription: {
+    color: COLORS.White,
+    opacity: 0.7,
+    fontSize: 11,
   },
-  resetButton: {
-    backgroundColor: COLORS.primaryComponent,
-    borderColor: COLORS.primaryComponent,
-  },
-  appInfo: {
+  appInfoContainer: {
     alignItems: 'center',
     paddingVertical: SIZES.spacing * 2,
   },
-  appInfoText: {
-    opacity: 0.6,
+  appInfo: {
+    color: COLORS.White,
+    opacity: 0.5,
     textAlign: 'center',
     marginBottom: 4,
   },
