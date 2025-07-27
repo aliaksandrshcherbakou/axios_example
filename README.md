@@ -1,4 +1,4 @@
-# IP_TEST_APP
+# freehand
 
 ## For the developer
 Dear friend, the repository was taken from some old project. It was chaos, but it turned into something that worked. The structure of the project is quite simple. Hours spent - 16. I did it on android only. I hope it works on your side))))

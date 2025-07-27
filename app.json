@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ip_test_app",
-    "slug": "ip_test_app",
+    "name": "freehand",
+    "slug": "freehand",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -19,7 +19,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.ip_test_app"
+      "package": "com.anonymous.freehand"
     },
     "web": {
       "favicon": "./assets/favicon.png"
