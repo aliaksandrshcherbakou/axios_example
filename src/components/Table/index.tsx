@@ -1,12 +1,12 @@
 import Typography from '@Components/Typography';
 import {SIZES} from '@Constants/style.constants';
 import {TLocationInfo} from '@Types/index';
-import React, {memo} from 'react';
+import {memo} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {headerText} from 'src/mockData';
 
 const Table = ({data}: {data: TLocationInfo}) => {
-  const selectedValues = data ? Object.keys(data).map(key => data[key]) : [];
+  const selectedValues = data ? Object.keys(data).map(key => data[key as keyof TLocationInfo]) : [];
   return (
     <View style={styles.container}>
       <View style={styles.row}>

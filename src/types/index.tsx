@@ -13,6 +13,31 @@ export type TLocationInfo = {
   isp: string;
 };
 
+export type ImageData = {
+  id: string;
+  image: string;
+};
+
+export type HabitRecord = {
+  date: string; // YYYY-MM-DD format
+  fapped: boolean;
+  timestamp: number;
+};
+
+export type HabitStats = {
+  currentStreak: number;
+  longestStreak: number;
+  totalDays: number;
+  cleanDays: number;
+};
+
+export type HabitContextType = {
+  records: HabitRecord[];
+  stats: HabitStats;
+  addRecord: (date: string, fapped: boolean) => void;
+  getRecordForDate: (date: string) => HabitRecord | undefined;
+};
+
 export type TContext = {
   info: TLocationInfo | undefined;
   image: number | undefined;

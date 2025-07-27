@@ -1,6 +1,16 @@
 {
   "compilerOptions": {
-    "jsx": "react",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "lib": ["dom", "esnext"],
+    "moduleResolution": "node",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "strict": true,
     "baseUrl": ".",
     "paths": {
       "@Constants/*": [
@@ -35,6 +45,6 @@
   },
   "extends": "expo/tsconfig.base",
   "files": ["./App.tsx"],
-  "include": ["./src/**/*"],
+  "include": ["./src/**/*", "./types/**/*"],
   "exclude": ["node_modules", "babel.config.js", "metro.config.js", "jest.config.js"]
 }

@@ -1,19 +1,16 @@
 export enum ROUTES {
   DASHBOARD = 'DASHBOARD',
-  AXIOS = 'AXIOS',
-  MARKET = 'MARKET',
-  DATA = 'DATA',
-  CHART = 'CHART',
+  MAIN = 'MAIN',
+  STATISTICS = 'STATISTICS',
+  PROFILE = 'PROFILE',
 }
 
 export type RootStackParamList = {
   [ROUTES.DASHBOARD]: undefined;
-} & TabBarStackParamList
+} & TabBarStackParamList;
 
 export type TabBarStackParamList = {
-  [ROUTES.AXIOS]: undefined;
-  [ROUTES.MARKET]: undefined;
-  [ROUTES.DATA]: undefined;
-  [ROUTES.CHART]: undefined;
-}
-
+  [ROUTES.MAIN]: undefined;
+  [ROUTES.STATISTICS]: undefined;
+  [ROUTES.PROFILE]: undefined;
+};

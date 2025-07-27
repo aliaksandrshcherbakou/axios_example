@@ -2,12 +2,11 @@ import Square from '@Components/Icons';
 import {COLORS} from '@Constants/style.constants';
 import {ROUTES, TabBarStackParamList} from '@Types/routes';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import React, {FC} from 'react';
+import {FC} from 'react';
 import {StyleSheet} from 'react-native';
-import Chart from './Chart';
-import Data from './Data';
-import Market from './Market';
-import Axios from './Axios';
+import Main from '../Main';
+import Profile from '../Profile';
+import Statistics from '../Statistics';
 
 const Tab = createBottomTabNavigator<TabBarStackParamList>();
 
@@ -23,10 +22,27 @@ const BottomMenu: FC = () => {
           tabBarIcon: props => <Square {...props} />,
           tabBarHideOnKeyboard: true,
         }}>
-        <Tab.Screen name={ROUTES.AXIOS} component={Axios} />
-        <Tab.Screen name={ROUTES.MARKET} component={Market} />
-        <Tab.Screen name={ROUTES.DATA} component={Data} />
-        <Tab.Screen name={ROUTES.CHART} component={Chart} />
+        <Tab.Screen
+          name={ROUTES.MAIN}
+          component={Main}
+          options={{
+            tabBarLabel: 'Home',
+          }}
+        />
+        <Tab.Screen
+          name={ROUTES.STATISTICS}
+          component={Statistics}
+          options={{
+            tabBarLabel: 'Stats',
+          }}
+        />
+        <Tab.Screen
+          name={ROUTES.PROFILE}
+          component={Profile}
+          options={{
+            tabBarLabel: 'Profile',
+          }}
+        />
       </Tab.Navigator>
     </>
   );
