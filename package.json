@@ -10,6 +10,9 @@
     "web:build": "expo export --platform web",
     "web:serve": "npx serve dist -s",
     "web:dev": "expo start --web --dev-client",
+    "deploy:build": "npm run web:build",
+    "deploy": "npm run deploy:build && firebase deploy --only hosting",
+    "deploy:preview": "npm run deploy:build && firebase hosting:channel:deploy preview",
     "lint": "npm run lint-es && npm run lint-ts",
     "lint-ts": "./node_modules/.bin/tsc --skipLibCheck --noEmit",
     "lint-es": "./node_modules/.bin/eslint --fix --cache ./**/*.{js,jsx,ts,tsx,json} && prettier --write **/*.{js,jsx,ts,tsx,json,html} --loglevel warn"
