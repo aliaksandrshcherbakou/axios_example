@@ -3,7 +3,8 @@ import {ApplicationProvider, IconRegistry} from '@ui-kitten/components';
 import {useFonts} from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import {useCallback} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {Platform, StyleSheet, View} from 'react-native';
+import WebWrapper from './src/components/WebWrapper';
 import AppNavigator from './src/screens';
 
 import {EvaIconsPack} from '@ui-kitten/eva-icons';
@@ -27,14 +28,24 @@ export default function App() {
     return null;
   }
 
+  const AppContent = () => (
+    <Provider store={store}>
+      <IconRegistry icons={EvaIconsPack} />
+      <ApplicationProvider {...eva} theme={eva.light}>
+        <AppNavigator />
+      </ApplicationProvider>
+    </Provider>
+  );
+
   return (
     <View style={styles.flex} onLayout={onLayoutRootView}>
-      <Provider store={store}>
-        <IconRegistry icons={EvaIconsPack} />
-        <ApplicationProvider {...eva} theme={eva.light}>
-          <AppNavigator />
-        </ApplicationProvider>
-      </Provider>
+      {Platform.OS === 'web' ? (
+        <WebWrapper>
+          <AppContent />
+        </WebWrapper>
+      ) : (
+        <AppContent />
+      )}
     </View>
   );
 }

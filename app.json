@@ -22,7 +22,18 @@
       "package": "com.anonymous.freehand"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Free Hand - Habit Tracker",
+      "shortName": "Free Hand",
+      "lang": "en",
+      "scope": "/",
+      "startUrl": "/",
+      "backgroundColor": "#000000",
+      "themeColor": "#ffa31a",
+      "description": "Take control of your habits with Free Hand - a simple, effective habit tracking app",
+      "orientation": "any",
+      "display": "standalone",
+      "bundler": "metro"
     }
   }
 }

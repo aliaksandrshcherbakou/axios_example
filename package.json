@@ -7,6 +7,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "web:build": "expo export --platform web",
+    "web:serve": "npx serve dist -s",
+    "web:dev": "expo start --web --dev-client",
     "lint": "npm run lint-es && npm run lint-ts",
     "lint-ts": "./node_modules/.bin/tsc --skipLibCheck --noEmit",
     "lint-es": "./node_modules/.bin/eslint --fix --cache ./**/*.{js,jsx,ts,tsx,json} && prettier --write **/*.{js,jsx,ts,tsx,json,html} --loglevel warn"
@@ -34,7 +37,10 @@
     "react-native-websocket": "^1.0.2",
     "react-redux": "^9.1.2",
     "redux": "^5.0.1",
-    "redux-persist": "^6.0.0"
+    "redux-persist": "^6.0.0",
+    "react-native-web": "~0.19.10",
+    "react-dom": "18.2.0",
+    "@expo/metro-runtime": "~3.2.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
